@@ -9,18 +9,18 @@ using Newtonsoft.Json;
 
 public class AuthManager : MonoBehaviour
 {
-    //¼­¹ö URL ¹× PlayerPrefs Å° »ó¼ö Á¤ÀÇ
+    //ì„œë²„ URL ë° PlayerPrefs í‚¤ ìƒìˆ˜ ì •ì˜
     private const string SERVER_URL = "http://localhost:4000";
     private const string ACCESS_TOKEN_PREFS_KEY = "AccessToken";
     private const string REFRESH_TOKEN_PREFS_KEY = "RefreshToken";
     private const string TOKEN_EXPIRY_PREFS_KEY = "TokenExpiry";
 
-    //ÅäÅ« ¹× ¸¸·á ½Ã°£ ÀúÀå º¯¼ö
+    //í† í° ë° ë§Œë£Œ ì‹œê°„ ì €ì¥ ë³€ìˆ˜
     private string accessToken;
     private string refreshToken;
     private DateTime tokenExpiryTime;
 
-    //PlayerPrefs¿¡¼­ ÅäÅ« Á¤º¸ ·Îµå
+    //PlayerPrefsì—ì„œ í† í° ì •ë³´ ë¡œë“œ
     private void LoadTokenFromPrefs()
     {
         accessToken = PlayerPrefs.GetString(ACCESS_TOKEN_PREFS_KEY, "");
@@ -29,7 +29,7 @@ public class AuthManager : MonoBehaviour
         tokenExpiryTime = new DateTime(expiryTicks);
     }
 
-    //PlayerPrefs¿¡ ÅäÅ« Á¤º¸ ÀúÀå
+    //PlayerPrefsì— í† í° ì •ë³´ ì €ì¥
     private void SaveTokenToPrefs(string accessToken, string refreshToken, DateTime expiryTime)
     {
         PlayerPrefs.SetString(ACCESS_TOKEN_PREFS_KEY, accessToken);
@@ -42,7 +42,7 @@ public class AuthManager : MonoBehaviour
         this.tokenExpiryTime = expiryTime;
     }
 
-    //·Î±×ÀÎ ÄÚ·çÆ¾
+    //ë¡œê·¸ì¸ ì½”ë£¨í‹´
     public IEnumerator Login(string username, string password)
     {
         var user = new { username, password };
@@ -71,7 +71,7 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    //·Î±×¾Æ¿ô ÄÚ·çÆ¾
+    //ë¡œê·¸ì•„ì›ƒ ì½”ë£¨í‹´
     public IEnumerator Logout()
     {
         var logoutData = new { refreshToken };
@@ -92,7 +92,7 @@ public class AuthManager : MonoBehaviour
             }
             else
             {
-                //·ÎÄÃ ÅäÅ« Á¤º¸ ÃÊ±âÈ­
+                //ë¡œì»¬ í† í° ì •ë³´ ì´ˆê¸°í™”
                 accessToken = "";
                 refreshToken = "";
                 tokenExpiryTime = DateTime.MinValue;
@@ -105,12 +105,12 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    //ÅäÅ« °»½Å ÄÚ·çÆ¾
+    //í† í° ê°±ì‹  ì½”ë£¨í‹´
     private IEnumerator RefreshToken()
     {
         if(string.IsNullOrEmpty(refreshToken))
         {
-            Debug.LogError("¸®ÇÁ·¹½Ã ÅäÅ«ÀÌ ¾øÀ¸¹Ç·Î ´Ù½Ã ·Î±×ÀÎÇÑ´Ù.");
+            Debug.LogError("ë¦¬í”„ë ˆì‹œ í† í°ì´ ì—†ìœ¼ë¯€ë¡œ ë‹¤ì‹œ ë¡œê·¸ì¸í•œë‹¤.");
             yield break;
         }
 
@@ -129,7 +129,7 @@ public class AuthManager : MonoBehaviour
             if (www.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogError($"Registeration Error : {www.error}");
-                yield return Login("username", "password");     //½Ç±¸Çö¿¡¼­´Â ÀúÀåµÈ »ç¿ëÀÚ Á¤º¸¸¦ »ç¿ë
+                yield return Login("username", "password");     //ì‹¤êµ¬í˜„ì—ì„œëŠ” ì €ì¥ëœ ì‚¬ìš©ì ì •ë³´ë¥¼ ì‚¬ìš©
             }
             else
             {
@@ -141,7 +141,7 @@ public class AuthManager : MonoBehaviour
     }
 
 
-    //»ç¿ëÀÚ µî·Ï ÄÚ·çÆ¾
+    //ì‚¬ìš©ì ë“±ë¡ ì½”ë£¨í‹´
     public IEnumerator Register(string username, string password)
     {
         var user = new { username, password };
@@ -170,11 +170,11 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    //º¸È£µÈ µ¥ÀÌÅÍ °¡Á®¿À±â ÄÚ·çÆ¾
+    //ë³´í˜¸ëœ ë°ì´í„° ê°€ì ¸ì˜¤ê¸° ì½”ë£¨í‹´
     public IEnumerator GetProtectedData()
     {
-        //ÅäÅ«ÀÌ ¾ø°Å³ª ¸¸·áµÇ¾ú´ÂÁö È®ÀÎ
-        if(string.IsNullOrEmpty(accessToken) || DateTime.UtcNow >= tokenExpiryTime)
+        //í† í°ì´ ì—†ê±°ë‚˜ ë§Œë£Œë˜ì—ˆëŠ”ì§€ í™•ì¸
+        if (string.IsNullOrEmpty(accessToken) || DateTime.UtcNow >= tokenExpiryTime)
         {
             Debug.Log("Access token is empty or expired Refreshing...");
         }
@@ -197,14 +197,14 @@ public class AuthManager : MonoBehaviour
     }
 }
 
-//·Î±×ÀÎ ÀÀ´ä µ¥ÀÌÅÍ ±¸Á¶
+//ë¡œê·¸ì¸ ì‘ë‹µ ë°ì´í„° êµ¬ì¡°
 public class LoginResponse
 {
     public string accessToken;
     public string refreshToken;
 }
 
-//ÅäÅ« °»½Å ÀÀ´ä µ¥ÀÌÅÍ ±¸Á¶
+//í† í° ê°±ì‹  ì‘ë‹µ ë°ì´í„° êµ¬ì¡°
 [System.Serializable]
 
 public class RefreshTokenResponse
