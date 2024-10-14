@@ -1,6 +1,6 @@
 const express = require('express');
 const fs = require('fs');
-const playerRoutes = require('./routes/playerRoutes');  //플레이어 라우트 
+const playerRoutes = require('./Routes/PlayerRoutes');  //플레이어 라우트 
 const app = express();
 const port = 4000;
 app.use(express.json());
