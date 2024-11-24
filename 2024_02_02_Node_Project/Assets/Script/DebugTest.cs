@@ -27,6 +27,5 @@ public class DebugTest : MonoBehaviour
         {
             Hp -= 5;
         }
-
     }
 }
