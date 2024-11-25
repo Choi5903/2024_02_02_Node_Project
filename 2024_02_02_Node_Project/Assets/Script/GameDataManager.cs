@@ -33,93 +33,72 @@ public class Quest
     public string status;
 }
 
+
 public class GameDataManager : MonoBehaviour
 {
     private string serverUrl = "http://localhost:3000";
     private Player currentPlayer;
 
+    //데이터 리스트 
     public List<InventoryItem> inventoryItems = new List<InventoryItem>();
     public List<Quest> playerQuests = new List<Quest>();
 
+    //로그인 성공 시 실행될 이벤트 
     public delegate void OnLoginSuccessHandler(Player player);
     public event OnLoginSuccessHandler OnLoginSuccess;
 
-    public delegate void OnInventoryUpdateHandler(List<InventoryItem> items);
+    //데이터 업데이트시 실행될 이벤트
+    public delegate void OnInventoryUpdateHandler(List<InventoryItem> Items);
     public event OnInventoryUpdateHandler OnInventoryUpdate;
 
+    //퀘스트 업데이트시 실행될 이벤트
     public delegate void OnQuestsUpdateHandler(List<Quest> quests);
     public event OnQuestsUpdateHandler OnQuestsUpdate;
 
     public IEnumerator Login(string username, string passwordHash)
     {
-        Debug.Log($"[Login] Attempting login for user: {username}");
-
         var loginData = new Dictionary<string, string>
-    {
-        { "username", username },
-        { "password_hash", passwordHash }
-    };
+        {
+            { "username", username },
+            { "password_hash", passwordHash }
+        };
 
         string jsonData = JsonConvert.SerializeObject(loginData);
-        Debug.Log($"[Login] JSON Payload: {jsonData}");
-
         var www = new UnityWebRequest($"{serverUrl}/login", "POST");
+        Debug.Log($"{serverUrl}/login");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonData);
-        www.uploadHandler = new UploadHandlerRaw(jsonToSend);
-        www.downloadHandler = new DownloadHandlerBuffer();
+        www.uploadHandler = (UploadHandler)new UploadHandlerRaw(jsonToSend);
+        www.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
         www.SetRequestHeader("Content-Type", "application/json");
 
-        yield return www.SendWebRequest(); // `yield return`을 try 블록 외부로 이동
+        yield return www.SendWebRequest();
 
         if (www.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log($"[Login] Server Response: {www.downloadHandler.text}");
-            bool parseError = false; // 응답 파싱 에러 추적용 플래그
-            Dictionary<string, object> response = null;
-
-            try
-            {
-                response = JsonConvert.DeserializeObject<Dictionary<string, object>>(www.downloadHandler.text);
-            }
-            catch (System.Exception ex)
-            {
-                parseError = true;
-                Debug.LogError($"[Login] Exception while parsing response: {ex.Message}");
-            }
-
-            if (!parseError && response != null && (bool)response["success"])
+            var response = JsonConvert.DeserializeObject<Dictionary<string, object>>(www.downloadHandler.text);
+            if ((bool)response["success"])
             {
                 currentPlayer = JsonConvert.DeserializeObject<Player>(response["player"].ToString());
-                Debug.Log($"[Login] Login successful! Player: {currentPlayer.username}");
+                Debug.Log($"로그인 성공: {currentPlayer.username}");
 
                 OnLoginSuccess?.Invoke(currentPlayer);
 
+                //로그인 성공후 데이터 조회 
                 yield return StartCoroutine(GetInventory());
-                yield return StartCoroutine(GetQuest());
-            }
-            else
-            {
-                Debug.LogError("[Login] Login failed: Invalid credentials or response parsing issue.");
+                yield return StartCoroutine(GetQuests());
             }
         }
         else
         {
-            Debug.LogError($"[Login] HTTP Error: {www.error}");
+            Debug.LogError("로그인 실패: " + www.error);
         }
 
         www.Dispose();
     }
 
-
     private IEnumerator GetInventory()
     {
-        if (currentPlayer == null)
-        {
-            Debug.LogError("[GetInventory] Current player is null.");
-            yield break;
-        }
-
-        Debug.Log($"[GetInventory] Fetching inventory for player ID: {currentPlayer.player_id}");
+        if (currentPlayer == null) yield break;
 
         using (UnityWebRequest www = UnityWebRequest.Get($"{serverUrl}/inventory/{currentPlayer.player_id}"))
         {
@@ -127,26 +106,25 @@ public class GameDataManager : MonoBehaviour
 
             if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log($"[GetInventory] Server Response: {www.downloadHandler.text}");
                 inventoryItems = JsonConvert.DeserializeObject<List<InventoryItem>>(www.downloadHandler.text);
+                Debug.Log("인벤토리 아이템:");
+                foreach (var item in inventoryItems)
+                {
+                    Debug.Log($" - {item.name} x {item.quantity} (가치 : {item.value})");
+                }
+
                 OnInventoryUpdate?.Invoke(inventoryItems);
             }
             else
             {
-                Debug.LogError($"[GetInventory] HTTP Error: {www.error}");
+                Debug.LogError("인벤토리 조회 실패 : " + www.error);
             }
         }
     }
 
-    private IEnumerator GetQuest()
+    private IEnumerator GetQuests()
     {
-        if (currentPlayer == null)
-        {
-            Debug.LogError("[GetQuest] Current player is null.");
-            yield break;
-        }
-
-        Debug.Log($"[GetQuest] Fetching quests for player ID: {currentPlayer.player_id}");
+        if (currentPlayer == null) yield break;
 
         using (UnityWebRequest www = UnityWebRequest.Get($"{serverUrl}/quests/{currentPlayer.player_id}"))
         {
@@ -154,19 +132,43 @@ public class GameDataManager : MonoBehaviour
 
             if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log($"[GetQuest] Server Response: {www.downloadHandler.text}");
                 playerQuests = JsonConvert.DeserializeObject<List<Quest>>(www.downloadHandler.text);
+                Debug.Log("진행 중인 퀘스트 :");
+                foreach (var quest in playerQuests)
+                {
+                    Debug.Log($" - {quest.title}  {quest.status})");
+                }
+
                 OnQuestsUpdate?.Invoke(playerQuests);
             }
             else
             {
-                Debug.LogError($"[GetQuest] HTTP Error: {www.error}");
+                Debug.LogError("퀘스트 조회 실패 : " + www.error);
             }
         }
     }
 
+    //인벤토리 아이템 찾기
+    public InventoryItem GetInventoryItem(int itemId)
+    {
+        return inventoryItems.Find(item => item.item_id == itemId);
+    }
+
+    //퀘스트 찾기
+    public Quest GetQuest(int questId)
+    {
+        return playerQuests.Find(quest => quest.quest_id == questId);
+    }
+
+    //현재 플레이어 정보 가저오기 
+    public Player GetCurrentPlayer()
+    {
+        return currentPlayer;
+    }
+
     void Start()
     {
-        StartCoroutine(Login("hero1", "hashed_password1"));
+        StartCoroutine(Login("hero123", "hashed_password1"));
     }
+
 }
